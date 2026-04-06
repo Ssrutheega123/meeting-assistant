@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.db
+*.sqlite3
+*.log
+meetings.db
+meeting_assistant.db
+*.db
+start.sh
+start.bat
+venv/

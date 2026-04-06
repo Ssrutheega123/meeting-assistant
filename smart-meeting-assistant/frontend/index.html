@@ -1,0 +1,1513 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MeetMind — AI Meeting Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0a0a0f;
+        --bg2: #111118;
+        --bg3: #18181f;
+        --border: rgba(255, 255, 255, 0.07);
+        --border2: rgba(255, 255, 255, 0.12);
+        --text: #f0f0f5;
+        --muted: #7a7a8c;
+        --accent: #6e6af0;
+        --accent2: #a78bfa;
+        --accent3: #38bdf8;
+        --green: #34d399;
+        --amber: #fbbf24;
+        --red: #f87171;
+        --card: #13131a;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: "DM Sans", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* ── BG Orbs ── */
+      .bg-orb {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(120px);
+        pointer-events: none;
+        z-index: 0;
+      }
+      .orb1 {
+        width: 600px;
+        height: 600px;
+        background: rgba(110, 106, 240, 0.08);
+        top: -200px;
+        right: -100px;
+      }
+      .orb2 {
+        width: 500px;
+        height: 500px;
+        background: rgba(56, 189, 248, 0.05);
+        bottom: -100px;
+        left: -150px;
+      }
+
+      /* ── Layout ── */
+      .shell {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* ── Sidebar ── */
+      .sidebar {
+        width: 240px;
+        flex-shrink: 0;
+        background: var(--bg2);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        padding: 28px 0;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+      }
+      .logo {
+        padding: 0 24px 28px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 12px;
+      }
+      .logo-text {
+        font-family: "Syne", sans-serif;
+        font-weight: 800;
+        font-size: 22px;
+        letter-spacing: -0.5px;
+        background: linear-gradient(135deg, #a78bfa, #38bdf8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .logo-sub {
+        font-size: 11px;
+        color: var(--muted);
+        letter-spacing: 0.5px;
+        margin-top: 2px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 24px;
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--muted);
+        border-radius: 0;
+        transition: all 0.2s;
+        position: relative;
+        font-weight: 400;
+      }
+      .nav-item:hover {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .nav-item.active {
+        color: var(--text);
+        background: rgba(110, 106, 240, 0.12);
+        font-weight: 500;
+      }
+      .nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(135deg, var(--accent), var(--accent3));
+      }
+      .nav-icon {
+        font-size: 16px;
+        width: 20px;
+        text-align: center;
+      }
+      .stats-bar {
+        margin-top: auto;
+        padding: 20px 24px;
+        border-top: 1px solid var(--border);
+      }
+      .stat-mini {
+        margin-bottom: 12px;
+      }
+      .stat-mini-label {
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+      .stat-mini-val {
+        font-family: "Syne", sans-serif;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      /* ── Main content ── */
+      .main {
+        flex: 1;
+        overflow-x: hidden;
+      }
+      .page {
+        display: none;
+        padding: 40px;
+        max-width: 1000px;
+      }
+      .page.active {
+        display: block;
+      }
+
+      /* ── Page header ── */
+      .page-header {
+        margin-bottom: 32px;
+      }
+      .page-title {
+        font-family: "Syne", sans-serif;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        margin-bottom: 6px;
+      }
+      .page-desc {
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 300;
+      }
+
+      /* ── Stat cards ── */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+      .stat-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+        transition: border-color 0.2s;
+      }
+      .stat-card:hover {
+        border-color: var(--border2);
+      }
+      .stat-label {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 300;
+        letter-spacing: 0.3px;
+        margin-bottom: 8px;
+      }
+      .stat-value {
+        font-family: "Syne", sans-serif;
+        font-size: 30px;
+        font-weight: 700;
+      }
+      .stat-sub {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      /* ── Input area ── */
+      .input-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 28px;
+        margin-bottom: 28px;
+      }
+      .input-label {
+        font-size: 13px;
+        color: var(--muted);
+        font-weight: 400;
+        margin-bottom: 10px;
+        letter-spacing: 0.3px;
+      }
+      .title-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .title-input {
+        flex: 1;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-family: "DM Sans", sans-serif;
+        font-size: 14px;
+        color: var(--text);
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .title-input:focus {
+        border-color: var(--accent);
+      }
+      .title-input::placeholder {
+        color: var(--muted);
+      }
+      .transcript-area {
+        width: 100%;
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        font-family: "DM Sans", sans-serif;
+        font-size: 13.5px;
+        color: var(--text);
+        line-height: 1.7;
+        resize: vertical;
+        outline: none;
+        min-height: 180px;
+        transition: border-color 0.2s;
+      }
+      .transcript-area:focus {
+        border-color: var(--accent);
+      }
+      .transcript-area::placeholder {
+        color: var(--muted);
+      }
+      .bottom-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 16px;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      /* ── Buttons ── */
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent), #8b87f8);
+        border: none;
+        border-radius: 10px;
+        color: #fff;
+        font-family: "DM Sans", sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        padding: 12px 28px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 24px rgba(110, 106, 240, 0.35);
+      }
+      .btn-primary:active {
+        transform: scale(0.98);
+      }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .btn-sm {
+        background: transparent;
+        border: 1px solid var(--border2);
+        border-radius: 7px;
+        color: var(--muted);
+        font-family: "DM Sans", sans-serif;
+        font-size: 12px;
+        padding: 5px 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-sm:hover {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+      .btn-sample {
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--muted);
+        font-family: "DM Sans", sans-serif;
+        font-size: 12px;
+        padding: 7px 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .btn-sample:hover {
+        color: var(--text);
+        border-color: var(--border2);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      /* ── Processing state ── */
+      .processing-overlay {
+        display: none;
+        align-items: center;
+        gap: 16px;
+        background: rgba(110, 106, 240, 0.08);
+        border: 1px solid rgba(110, 106, 240, 0.2);
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin-bottom: 24px;
+      }
+      .processing-overlay.show {
+        display: flex;
+      }
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(110, 106, 240, 0.3);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .processing-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .pstep {
+        font-size: 13px;
+        color: var(--muted);
+        transition: color 0.3s;
+      }
+      .pstep.active {
+        color: var(--accent2);
+        font-weight: 500;
+      }
+      .pstep.done {
+        color: var(--green);
+      }
+
+      /* ── Result section ── */
+      .result-section {
+        display: none;
+      }
+      .result-section.show {
+        display: block;
+      }
+      .section-title {
+        font-family: "Syne", sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .section-title .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      /* ── Result cards ── */
+      .result-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .result-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+      }
+      .result-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      .result-card-title {
+        font-family: "Syne", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+      .count-badge {
+        background: rgba(110, 106, 240, 0.15);
+        color: var(--accent2);
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-family: "Syne", sans-serif;
+      }
+
+      /* ── Task items ── */
+      .task-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+      }
+      .task-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      .task-check {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: 1.5px solid var(--border2);
+        flex-shrink: 0;
+        margin-top: 1px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .task-check:hover {
+        border-color: var(--accent);
+      }
+      .task-check.done {
+        background: var(--green);
+        border-color: var(--green);
+      }
+      .task-check.done::after {
+        content: "✓";
+        color: #000;
+        font-size: 10px;
+        font-weight: 700;
+      }
+      .task-info {
+        flex: 1;
+      }
+      .task-title {
+        font-weight: 400;
+        color: var(--text);
+        margin-bottom: 3px;
+        line-height: 1.4;
+      }
+      .task-meta {
+        font-size: 11px;
+        color: var(--muted);
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .priority-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 5px;
+      }
+      .p-high {
+        background: var(--red);
+      }
+      .p-medium {
+        background: var(--amber);
+      }
+      .p-low {
+        background: var(--green);
+      }
+
+      /* ── Event items ── */
+      .event-item {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+      }
+      .event-item:last-child {
+        border-bottom: none;
+      }
+      .event-title {
+        font-weight: 500;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
+      .event-meta {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      /* ── Notes card ── */
+      .notes-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 24px;
+        margin-bottom: 16px;
+      }
+      .summary-text {
+        font-size: 14px;
+        color: var(--text);
+        line-height: 1.7;
+        font-weight: 300;
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      .decisions-title {
+        font-size: 12px;
+        color: var(--muted);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        font-family: "Syne", sans-serif;
+      }
+      .decisions-text {
+        font-size: 13px;
+        color: var(--text);
+        line-height: 1.8;
+        font-weight: 300;
+        white-space: pre-line;
+      }
+
+      /* ── Email card ── */
+      .email-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 24px;
+        margin-bottom: 24px;
+      }
+      .email-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .email-title {
+        font-family: "Syne", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+      .email-body {
+        font-size: 13px;
+        color: var(--text);
+        line-height: 1.8;
+        font-weight: 300;
+        white-space: pre-wrap;
+        background: var(--bg3);
+        border-radius: 10px;
+        padding: 16px;
+        border: 1px solid var(--border);
+        max-height: 280px;
+        overflow-y: auto;
+      }
+
+      /* ── Tasks list page ── */
+      .filter-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+      .filter-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--muted);
+        font-family: "DM Sans", sans-serif;
+        font-size: 12px;
+        padding: 6px 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .filter-btn.active,
+      .filter-btn:hover {
+        color: var(--text);
+        border-color: var(--accent);
+        background: rgba(110, 106, 240, 0.08);
+      }
+      .task-list-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .task-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+        transition: background 0.15s;
+      }
+      .task-row:hover {
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .task-row:last-child {
+        border-bottom: none;
+      }
+      .task-row-title {
+        flex: 1;
+        color: var(--text);
+        line-height: 1.4;
+      }
+      .task-row-assignee {
+        width: 120px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .task-row-due {
+        width: 110px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .status-pill {
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .s-pending {
+        background: rgba(251, 191, 36, 0.12);
+        color: var(--amber);
+      }
+      .s-done {
+        background: rgba(52, 211, 153, 0.12);
+        color: var(--green);
+      }
+      .table-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 20px;
+        border-bottom: 1px solid var(--border);
+        font-size: 11px;
+        color: var(--muted);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        font-family: "Syne", sans-serif;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      /* ── Calendar page ── */
+      .event-grid {
+        display: grid;
+        gap: 12px;
+      }
+      .event-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: border-color 0.2s;
+      }
+      .event-card:hover {
+        border-color: var(--border2);
+      }
+      .event-date-box {
+        width: 50px;
+        height: 50px;
+        background: rgba(110, 106, 240, 0.1);
+        border: 1px solid rgba(110, 106, 240, 0.2);
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .event-date-num {
+        font-family: "Syne", sans-serif;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--accent2);
+        line-height: 1;
+      }
+      .event-date-mon {
+        font-size: 10px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 2px;
+      }
+      .event-info-title {
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+      .event-info-meta {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      /* ── Empty state ── */
+      .empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--muted);
+      }
+      .empty-icon {
+        font-size: 36px;
+        margin-bottom: 12px;
+        opacity: 0.5;
+      }
+      .empty-text {
+        font-size: 14px;
+      }
+
+      /* ── Toast ── */
+      #toast {
+        position: fixed;
+        bottom: 32px;
+        right: 32px;
+        background: var(--card);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        padding: 14px 20px;
+        font-size: 13px;
+        color: var(--text);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        z-index: 100;
+        transform: translateY(20px);
+        opacity: 0;
+        transition: all 0.3s;
+        max-width: 320px;
+      }
+      #toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      /* ── Error banner ── */
+      .error-banner {
+        display: none;
+        background: rgba(248, 113, 113, 0.1);
+        border: 1px solid rgba(248, 113, 113, 0.25);
+        border-radius: 10px;
+        padding: 14px 18px;
+        font-size: 13px;
+        color: var(--red);
+        margin-bottom: 16px;
+      }
+      .error-banner.show {
+        display: block;
+      }
+
+      /* ── Scrollbar ── */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 3px;
+      }
+
+      /* ── Responsive ── */
+      @media (max-width: 800px) {
+        .sidebar {
+          width: 60px;
+        }
+        .nav-item span,
+        .logo-sub,
+        .logo-text,
+        .stats-bar .stat-mini-label,
+        .stats-bar .stat-mini-val {
+          display: none;
+        }
+        .result-grid {
+          grid-template-columns: 1fr;
+        }
+        .stats-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .page {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-orb orb1"></div>
+    <div class="bg-orb orb2"></div>
+
+    <div class="shell">
+      <!-- ── Sidebar ── -->
+      <aside class="sidebar">
+        <div class="logo">
+          <div class="logo-text">MeetMind</div>
+          <div class="logo-sub">AI Meeting Assistant</div>
+        </div>
+
+        <nav>
+          <div class="nav-item active" onclick="showPage('home')">
+            <span class="nav-icon">⚡</span>
+            <span>Process Meeting</span>
+          </div>
+          <div class="nav-item" onclick="showPage('tasks')">
+            <span class="nav-icon">✓</span>
+            <span>Tasks</span>
+          </div>
+          <div class="nav-item" onclick="showPage('calendar')">
+            <span class="nav-icon">◷</span>
+            <span>Calendar</span>
+          </div>
+          <div class="nav-item" onclick="showPage('history')">
+            <span class="nav-icon">◫</span>
+            <span>History</span>
+          </div>
+        </nav>
+
+        <div class="stats-bar">
+          <div class="stat-mini">
+            <div class="stat-mini-label">Meetings</div>
+            <div class="stat-mini-val" id="sb-meetings">—</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-mini-label">Open Tasks</div>
+            <div
+              class="stat-mini-val"
+              id="sb-tasks"
+              style="color: var(--amber)"
+            >
+              —
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ── Main ── -->
+      <main class="main">
+        <!-- ═══ HOME PAGE ═══ -->
+        <section class="page active" id="page-home">
+          <div class="page-header">
+            <div class="page-title">Process Meeting</div>
+            <div class="page-desc">
+              Paste your meeting transcript and let 3 AI agents extract tasks,
+              schedule events, and draft notes simultaneously.
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Meetings Processed</div>
+              <div
+                class="stat-value"
+                id="stat-meetings"
+                style="color: var(--accent2)"
+              >
+                —
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Total Tasks</div>
+              <div
+                class="stat-value"
+                id="stat-tasks"
+                style="color: var(--amber)"
+              >
+                —
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Pending Tasks</div>
+              <div
+                class="stat-value"
+                id="stat-pending"
+                style="color: var(--red)"
+              >
+                —
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Scheduled Events</div>
+              <div
+                class="stat-value"
+                id="stat-events"
+                style="color: var(--green)"
+              >
+                —
+              </div>
+            </div>
+          </div>
+
+          <div class="input-card">
+            <div class="title-row">
+              <input
+                class="title-input"
+                id="meeting-title"
+                placeholder="Meeting title (e.g. Q3 Sprint Planning)"
+                style="flex: 1"
+              />
+              <button class="btn-sample" onclick="loadSample()">
+                Load sample transcript
+              </button>
+            </div>
+            <div class="input-label">Meeting Transcript</div>
+            <textarea
+              class="transcript-area"
+              id="transcript-input"
+              placeholder="Paste your meeting transcript here...&#10;&#10;Example: 'John will review the API documentation by Friday. Sarah needs to schedule a follow-up with the design team next Tuesday at 2pm. We decided to move the launch date to June 15...'"
+            ></textarea>
+            <div class="bottom-row">
+              <div class="hint">
+                3 AI agents will run in parallel — Tasks · Calendar · Notes
+              </div>
+              <button
+                class="btn-primary"
+                id="process-btn"
+                onclick="processMeeting()"
+              >
+                <span>⚡</span> Process Meeting
+              </button>
+            </div>
+          </div>
+
+          <div class="error-banner" id="error-banner"></div>
+
+          <div class="processing-overlay" id="processing-overlay">
+            <div class="spinner"></div>
+            <div class="processing-steps">
+              <div class="pstep active" id="step1">
+                🎯 Orchestrator dispatching 3 sub-agents...
+              </div>
+              <div class="pstep" id="step2">
+                📋 Task Extractor Agent — extracting action items
+              </div>
+              <div class="pstep" id="step3">
+                📅 Calendar Agent — scheduling follow-ups
+              </div>
+              <div class="pstep" id="step4">
+                📝 Notes Agent — drafting summary & email
+              </div>
+            </div>
+          </div>
+
+          <div class="result-section" id="result-section">
+            <div class="section-title">
+              <div class="dot"></div>
+              Extraction Results
+            </div>
+
+            <div class="result-grid">
+              <!-- Tasks -->
+              <div class="result-card">
+                <div class="result-card-header">
+                  <div class="result-card-title">Tasks Created</div>
+                  <div class="count-badge" id="task-count">0</div>
+                </div>
+                <div id="task-list-result">
+                  <div class="empty">
+                    <div class="empty-text">No tasks found</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Events -->
+              <div class="result-card">
+                <div class="result-card-header">
+                  <div class="result-card-title">Calendar Events</div>
+                  <div class="count-badge" id="event-count">0</div>
+                </div>
+                <div id="event-list-result">
+                  <div class="empty">
+                    <div class="empty-text">No events found</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Meeting Notes -->
+            <div class="section-title">
+              <div class="dot" style="background: var(--accent3)"></div>
+              Meeting Summary
+            </div>
+            <div class="notes-card" id="notes-card">
+              <div class="summary-text" id="summary-text"></div>
+              <div class="decisions-title">Key Decisions</div>
+              <div class="decisions-text" id="decisions-text"></div>
+            </div>
+
+            <!-- Email -->
+            <div class="section-title">
+              <div class="dot" style="background: var(--green)"></div>
+              Follow-up Email Draft
+            </div>
+            <div class="email-card">
+              <div class="email-header">
+                <div class="email-title">Ready to Send</div>
+                <button class="btn-sm" onclick="copyEmail()">Copy Email</button>
+              </div>
+              <div class="email-body" id="email-body"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ TASKS PAGE ═══ -->
+        <section class="page" id="page-tasks">
+          <div class="page-header">
+            <div class="page-title">All Tasks</div>
+            <div class="page-desc">
+              Manage and track all action items extracted from your meetings.
+            </div>
+          </div>
+          <div class="filter-row">
+            <button
+              class="filter-btn active"
+              onclick="filterTasks('all', this)"
+            >
+              All
+            </button>
+            <button class="filter-btn" onclick="filterTasks('pending', this)">
+              Pending
+            </button>
+            <button class="filter-btn" onclick="filterTasks('done', this)">
+              Completed
+            </button>
+            <button class="filter-btn" onclick="filterTasks('high', this)">
+              🔴 High Priority
+            </button>
+          </div>
+          <div class="task-list-card">
+            <div class="table-header">
+              <div style="flex: 1">Task</div>
+              <div style="width: 120px">Assignee</div>
+              <div style="width: 110px">Due Date</div>
+              <div style="width: 90px">Status</div>
+            </div>
+            <div id="all-tasks-list">
+              <div class="empty">
+                <div class="empty-icon">✓</div>
+                <div class="empty-text">
+                  No tasks yet. Process a meeting to get started.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ CALENDAR PAGE ═══ -->
+        <section class="page" id="page-calendar">
+          <div class="page-header">
+            <div class="page-title">Upcoming Events</div>
+            <div class="page-desc">
+              Follow-up meetings and scheduled events from your meetings.
+            </div>
+          </div>
+          <div class="event-grid" id="all-events-list">
+            <div class="empty">
+              <div class="empty-icon">◷</div>
+              <div class="empty-text">
+                No events yet. Process a meeting to schedule events.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══ HISTORY PAGE ═══ -->
+        <section class="page" id="page-history">
+          <div class="page-header">
+            <div class="page-title">Meeting History</div>
+            <div class="page-desc">
+              All processed meetings and their extracted data.
+            </div>
+          </div>
+          <div class="task-list-card" id="history-list">
+            <div class="empty">
+              <div class="empty-icon">◫</div>
+              <div class="empty-text">No meetings processed yet.</div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+      const API = "http://localhost:8001";
+      let currentFilter = "all";
+      let allTasksCache = [];
+
+      // ── Navigation ──────────────────────────────────────────────────
+      function showPage(name) {
+        document
+          .querySelectorAll(".page")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".nav-item")
+          .forEach((n) => n.classList.remove("active"));
+        document.getElementById("page-" + name).classList.add("active");
+        event.currentTarget.classList.add("active");
+
+        if (name === "tasks") loadAllTasks();
+        if (name === "calendar") loadAllEvents();
+        if (name === "history") loadHistory();
+      }
+
+      // ── Stats ───────────────────────────────────────────────────────
+      async function loadStats() {
+        try {
+          const r = await fetch(API + "/api/stats");
+          const d = await r.json();
+          document.getElementById("stat-meetings").textContent =
+            d.total_meetings;
+          document.getElementById("stat-tasks").textContent = d.total_tasks;
+          document.getElementById("stat-pending").textContent = d.pending_tasks;
+          document.getElementById("stat-events").textContent = d.total_events;
+          document.getElementById("sb-meetings").textContent = d.total_meetings;
+          document.getElementById("sb-tasks").textContent = d.pending_tasks;
+        } catch (e) {}
+      }
+
+      // ── Sample transcript ───────────────────────────────────────────
+      function loadSample() {
+        document.getElementById("meeting-title").value =
+          "Q3 Product Sprint Planning";
+        document.getElementById("transcript-input").value =
+          `Team Sprint Planning Meeting — Q3 2025
+Attendees: Sarah (PM), Alex (Tech Lead), Priya (Designer), Raj (Backend), Tom (Frontend)
+
+Sarah opened the meeting by reviewing Q2 outcomes. We exceeded our user growth target by 12%.
+
+Action Items Discussed:
+- Alex will finalize the API documentation by next Friday (June 13th). High priority.
+- Priya needs to deliver updated Figma mockups for the dashboard redesign by June 10th.
+- Raj will fix the authentication bug that was reported last week — due by end of this week.
+- Tom will implement the new onboarding flow once Priya's mockups are ready.
+- Sarah will schedule a stakeholder review presentation with the leadership team.
+- Everyone should review the Q3 roadmap document before our next sync.
+
+Scheduled Events:
+- Design review meeting: next Tuesday June 10th at 2:00 PM with Sarah and Priya
+- Sprint demo with leadership: June 20th at 11:00 AM, all team members required
+- Weekly standup continues every Monday at 9:30 AM
+
+Key Decisions:
+- We agreed to push the mobile app launch from June 30 to July 15 to ensure quality.
+- The team will adopt a new CI/CD pipeline starting next sprint.
+- Budget approved for additional cloud infrastructure ($2,000/month).
+
+Meeting adjourned at 3:45 PM. Next full team sync is in two weeks.`;
+        showToast("Sample transcript loaded");
+      }
+
+      // ── Process meeting ─────────────────────────────────────────────
+      async function processMeeting() {
+        const transcript = document
+          .getElementById("transcript-input")
+          .value.trim();
+        const title =
+          document.getElementById("meeting-title").value.trim() ||
+          "Team Meeting";
+
+        if (!transcript) {
+          showToast("Please enter a transcript first", true);
+          return;
+        }
+
+        const btn = document.getElementById("process-btn");
+        btn.disabled = true;
+        document.getElementById("error-banner").classList.remove("show");
+        document.getElementById("result-section").classList.remove("show");
+        document.getElementById("processing-overlay").classList.add("show");
+
+        // Animate steps
+        const steps = ["step1", "step2", "step3", "step4"];
+        let si = 0;
+        const stepInterval = setInterval(() => {
+          if (si > 0)
+            document
+              .getElementById(steps[si - 1])
+              .classList.replace("active", "done");
+          if (si < steps.length) {
+            document.getElementById(steps[si]).classList.add("active");
+            si++;
+          } else {
+            clearInterval(stepInterval);
+          }
+        }, 900);
+
+        try {
+          const resp = await fetch(API + "/api/process-meeting", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              transcript: transcript.replace(
+                /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,
+                "",
+              ),
+              title,
+            }),
+          });
+
+          clearInterval(stepInterval);
+          steps.forEach((s) => {
+            document.getElementById(s).classList.remove("active");
+            document.getElementById(s).classList.add("done");
+          });
+
+          if (!resp.ok) {
+            const err = await resp.json();
+            throw new Error(err.detail || "Server error");
+          }
+
+          const data = await resp.json();
+          renderResults(data.data);
+          loadStats();
+          showToast("✓ Meeting processed by 3 agents successfully");
+        } catch (e) {
+          clearInterval(stepInterval);
+          const banner = document.getElementById("error-banner");
+          banner.textContent = "✗ " + e.message;
+          banner.classList.add("show");
+        } finally {
+          document
+            .getElementById("processing-overlay")
+            .classList.remove("show");
+          steps.forEach((s) => {
+            document.getElementById(s).classList.remove("active", "done");
+          });
+          document.getElementById("step1").classList.add("active");
+          btn.disabled = false;
+        }
+      }
+
+      // ── Render results ───────────────────────────────────────────────
+      function renderResults(data) {
+        // Tasks
+        const taskEl = document.getElementById("task-list-result");
+        document.getElementById("task-count").textContent = data.tasks.length;
+        if (data.tasks.length) {
+          taskEl.innerHTML = data.tasks
+            .map(
+              (t) => `
+      <div class="task-item">
+        <div class="priority-dot p-${t.priority || "medium"}"></div>
+        <div class="task-info">
+          <div class="task-title">${esc(t.title)}</div>
+          <div class="task-meta">
+            <span>${esc(t.assignee || "Team")}</span>
+            ${t.due_date ? `<span>• ${esc(t.due_date)}</span>` : ""}
+          </div>
+        </div>
+      </div>`,
+            )
+            .join("");
+        } else {
+          taskEl.innerHTML =
+            '<div class="empty"><div class="empty-text">No tasks found</div></div>';
+        }
+
+        // Events
+        const evtEl = document.getElementById("event-list-result");
+        document.getElementById("event-count").textContent = data.events.length;
+        if (data.events.length) {
+          evtEl.innerHTML = data.events
+            .map(
+              (e) => `
+      <div class="event-item">
+        <div class="event-title">${esc(e.title)}</div>
+        <div class="event-meta">${esc(e.date || "TBD")} · ${esc(e.time || "TBD")} · ${esc(e.duration || "1h")}</div>
+        <div class="event-meta" style="margin-top:2px">👥 ${esc(e.attendees || "All participants")}</div>
+      </div>`,
+            )
+            .join("");
+        } else {
+          evtEl.innerHTML =
+            '<div class="empty"><div class="empty-text">No events scheduled</div></div>';
+        }
+
+        // Notes
+        if (data.notes) {
+          document.getElementById("summary-text").textContent =
+            data.notes.summary || "";
+          document.getElementById("decisions-text").textContent =
+            data.notes.key_decisions || "";
+          document.getElementById("email-body").textContent =
+            data.notes.follow_up_email || "";
+        }
+
+        document.getElementById("result-section").classList.add("show");
+        document
+          .getElementById("result-section")
+          .scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      // ── Tasks page ───────────────────────────────────────────────────
+      async function loadAllTasks() {
+        const resp = await fetch(API + "/api/tasks");
+        allTasksCache = await resp.json();
+        renderTasksTable(allTasksCache);
+      }
+
+      function filterTasks(filter, btn) {
+        currentFilter = filter;
+        document
+          .querySelectorAll(".filter-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        renderTasksTable(allTasksCache);
+      }
+
+      function renderTasksTable(tasks) {
+        let filtered = tasks;
+        if (currentFilter === "pending")
+          filtered = tasks.filter((t) => t.status !== "done");
+        else if (currentFilter === "done")
+          filtered = tasks.filter((t) => t.status === "done");
+        else if (currentFilter === "high")
+          filtered = tasks.filter((t) => t.priority === "high");
+
+        const el = document.getElementById("all-tasks-list");
+        if (!filtered.length) {
+          el.innerHTML =
+            '<div class="empty"><div class="empty-text">No tasks match this filter.</div></div>';
+          return;
+        }
+        el.innerHTML = filtered
+          .map(
+            (t) => `
+    <div class="task-row" id="taskrow-${t.id}">
+      <div class="task-check ${t.status === "done" ? "done" : ""}" onclick="toggleTask(${t.id}, this)"></div>
+      <div class="task-row-title" style="${t.status === "done" ? "opacity:0.5;text-decoration:line-through" : ""}">${esc(t.title)}</div>
+      <div class="task-row-assignee">${esc(t.assignee || "Team")}</div>
+      <div class="task-row-due">${esc(t.due_date || "—")}</div>
+      <div><span class="status-pill ${t.status === "done" ? "s-done" : "s-pending"}">${t.status === "done" ? "Done" : "Pending"}</span></div>
+    </div>`,
+          )
+          .join("");
+      }
+
+      async function toggleTask(id, el) {
+        const isDone = !el.classList.contains("done");
+        el.classList.toggle("done", isDone);
+        await fetch(API + `/api/tasks/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: isDone ? "done" : "pending" }),
+        });
+        const task = allTasksCache.find((t) => t.id === id);
+        if (task) task.status = isDone ? "done" : "pending";
+        renderTasksTable(allTasksCache);
+        loadStats();
+        showToast(isDone ? "✓ Task marked complete" : "Task reopened");
+      }
+
+      // ── Calendar page ────────────────────────────────────────────────
+      async function loadAllEvents() {
+        const resp = await fetch(API + "/api/calendar");
+        const events = await resp.json();
+        const el = document.getElementById("all-events-list");
+        if (!events.length) {
+          el.innerHTML =
+            '<div class="empty"><div class="empty-icon">◷</div><div class="empty-text">No events yet.</div></div>';
+          return;
+        }
+        el.innerHTML = events
+          .map((e) => {
+            const d = e.date ? new Date(e.date) : null;
+            const day = d ? d.getDate() : "?";
+            const mon = d
+              ? d.toLocaleString("default", { month: "short" }).toUpperCase()
+              : "—";
+            return `
+    <div class="event-card">
+      <div class="event-date-box">
+        <div class="event-date-num">${day}</div>
+        <div class="event-date-mon">${mon}</div>
+      </div>
+      <div>
+        <div class="event-info-title">${esc(e.title)}</div>
+        <div class="event-info-meta">${esc(e.time || "TBD")} · ${esc(e.duration || "1h")} · ${esc(e.attendees || "All participants")}</div>
+      </div>
+    </div>`;
+          })
+          .join("");
+      }
+
+      // ── History page ────────────────────────────────────────────────
+      async function loadHistory() {
+        const resp = await fetch(API + "/api/meetings");
+        const meetings = await resp.json();
+        const el = document.getElementById("history-list");
+        if (!meetings.length) {
+          el.innerHTML =
+            '<div class="empty"><div class="empty-text">No meetings yet.</div></div>';
+          return;
+        }
+        el.innerHTML = meetings
+          .map(
+            (m) => `
+    <div class="task-row">
+      <div style="width:10px;height:10px;border-radius:50%;background:${m.status === "complete" ? "var(--green)" : "var(--amber)"};flex-shrink:0"></div>
+      <div class="task-row-title">${esc(m.title || "Untitled Meeting")}</div>
+      <div class="task-row-due">${m.created_at ? m.created_at.split("T")[0] : "—"}</div>
+      <div><span class="status-pill ${m.status === "complete" ? "s-done" : "s-pending"}">${m.status}</span></div>
+    </div>`,
+          )
+          .join("");
+      }
+
+      // ── Utils ────────────────────────────────────────────────────────
+      function copyEmail() {
+        const text = document.getElementById("email-body").textContent;
+        navigator.clipboard
+          .writeText(text)
+          .then(() => showToast("Email copied to clipboard"));
+      }
+
+      function showToast(msg, isError = false) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.style.borderColor = isError
+          ? "rgba(248,113,113,0.4)"
+          : "var(--border2)";
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 3000);
+      }
+
+      function esc(str) {
+        if (!str) return "";
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      // ── Init ─────────────────────────────────────────────────────────
+      loadStats();
+    </script>
+  </body>
+</html>
